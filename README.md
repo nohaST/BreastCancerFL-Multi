@@ -50,9 +50,7 @@ cd [YourRepoName]
 *   **BCMID:** [Dataset on Zenodo](https://zenodo.org/records/14970848)
 
 ### 2. Required Directory Structure
-
-After downloading, create a `data/` directory in the root of this project, the scripts expect the following directory structure:
-
+```
 [YourRepoName]/
 ├── data/
 │   ├── BUSI/
@@ -70,15 +68,15 @@ After downloading, create a `data/` directory in the root of this project, the s
 │   │       └── normal/
 │   │
 │   ├── BUS-UCLM/
-│   │   ├── (same train/validation/test structure as above)
+│   │   └── (structure repeated for train/validation/test)
 │   │
 │   └── BCMID/
-│       ├── (same train/validation/test structure as above)
+│       └── (structure repeated for train/validation/test)
 │
 ├── centralized.py
 ├── local.py
 └── federated/
-
+```
 To prevent data leakage and ensure a fair evaluation, these splits must be performed at the patient level. 
 
 ## How to Run the Experiments
