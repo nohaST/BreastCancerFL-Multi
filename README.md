@@ -88,13 +88,14 @@ You can run each learning paradigm using the dedicated scripts.
 Trains a single model on all datasets combined.
 
 ```bash
-python centralized.py --model ResNet50V2 --n 2 --dataset BUSI BCMID
+python run_centralized_local.py --model ResNet50V2 --dataset BCMID BUSI BUSUCLM
 ```
+
 2. Local Training
 Trains and evaluates a separate model for each dataset individually.
 
 ```bash
-python local.py --model ResNet50V2 --dataset BCMID
+python run_centralized_local.py --model ResNet50V2 --dataset BCMID
 ```
 3. Federated Learning
 Runs a full federated learning simulation with clients representing each dataset.
