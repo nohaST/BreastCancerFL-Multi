@@ -15,7 +15,7 @@ import json
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-import argparse  # Import for command-line parsing
+import argparse
 import math
 
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -32,7 +32,6 @@ from tensorflow.keras.applications import MobileNetV2, ResNet50V2, InceptionV3, 
 # ==============================================================================
 
 # --- DEFINE AVAILABLE DATASETS ---
-# Maps dataset names to their respective paths.
 AVAILABLE_DATASETS = {
     "BCMID": "./data/BCMID/",
     "BUSI": "./data/BUSI/",
@@ -44,23 +43,21 @@ def readData(categories, split_path):
     data, labels = [], []
     for category in categories:
         folder_path = os.path.join(split_path, category)
-        for img in os.listdir(folder_path):
-            img_path = os.path.join(folder_path, img)
-            data.append(img_path)
-            labels.append(category)
+        if os.path.exists(folder_path):
+            for img in os.listdir(folder_path):
+                img_path = os.path.join(folder_path, img)
+                data.append(img_path)
+                labels.append(category)
     return data, labels
 
 def load_data(dataset_name: str):
-    """
-    Loads and preprocesses the data for a specific client dataset.
-    """
+    """Loads and preprocesses the data for a specific client dataset."""
     if dataset_name not in AVAILABLE_DATASETS:
         raise ValueError(f"Dataset '{dataset_name}' not recognized. Available options: {list(AVAILABLE_DATASETS.keys())}")
 
     final_path = AVAILABLE_DATASETS[dataset_name]
     print(f"Loading data from path: {final_path}")
     
-    # --- Client Name Extraction ---
     client_name = os.path.basename(os.path.normpath(final_path))
     print(f"Client Name Extracted: {client_name}")
     
@@ -91,7 +88,6 @@ def load_data(dataset_name: str):
     )
 
     class_weights = compute_weights(train_gen)
-
     return train_gen, val_gen, test_gen, class_weights, client_name
 
 def compute_weights(train_gen):
@@ -107,9 +103,7 @@ def compute_weights(train_gen):
 # ==============================================================================
 
 def create_model(model_name: str):
-    """
-    Creates and compiles a Keras model based on the specified name.
-    """
+    """Creates and compiles a Keras model based on the specified name."""
     GLOBAL_SEED = 42
     tf.keras.utils.set_random_seed(GLOBAL_SEED)
     initializer = tf.keras.initializers.GlorotUniform(seed=GLOBAL_SEED)
@@ -126,7 +120,7 @@ def create_model(model_name: str):
 
     base_model_class = model_map[model_name]
     base_model = base_model_class(input_shape=(224, 224, 3), weights='imagenet', include_top=False)
-    base_model.trainable = True # Set to True for fine-tuning
+    base_model.trainable = True
 
     x = base_model.output
     x = GlobalAveragePooling2D()(x)
@@ -164,14 +158,13 @@ class FederatedClient(fl.client.NumPyClient):
         history = self.model.fit(
             self.train_gen,
             validation_data=self.val_gen,
-            epochs=1,  # Train for one epoch per round
+            epochs=1,
             verbose=1,
             class_weight=self.class_weights,
             callbacks=[early_stopping]
         )
         
         num_examples = self.train_gen.samples
-        # Use the final epoch's metrics, as early stopping might not trigger in 1 epoch
         results = {
             "accuracy": history.history["accuracy"][-1],
             "loss": history.history["loss"][-1],
@@ -226,27 +219,21 @@ if __name__ == "__main__":
         choices=["MobileNetV2", "ResNet50V2", "InceptionV3", "DenseNet121"],
         help="The model architecture to train."
     )
-    parser.add_argument(
-        "--server_address",
-        type=str,
-        default="0.0.0.0:8080",
-        help="Address and port of the Flower server."
-    )
     args = parser.parse_args()
 
-    # 1. Load data for the specified dataset
+    # Load data for the specified dataset
     train_gen, val_gen, test_gen, class_weights, client_name = load_data(args.dataset)
     
-    # 2. Create the specified model
+    # Create the specified model
     model = create_model(args.model)
     
-    # 3. Instantiate the Flower client
+    # Instantiate the Flower client
     client = FederatedClient(model, train_gen, val_gen, test_gen, class_weights, client_name)
     
-    # 4. Start the client
+    # Start the client (connecting to the hardcoded server address)
     print(f"\nStarting Flower client for dataset '{args.dataset}' with model '{args.model}'...")
     fl.client.start_numpy_client(
-        server_address=args.server_address,
+        server_address="0.0.0.0:8080",
         client=client,
         grpc_max_message_length=1024 * 1024 * 1024
     )
